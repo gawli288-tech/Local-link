@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # Removed cache: 'npm' to fix "Dependencies lock file is not found" error
-          # as package-lock.json is not currently committed to the repository.
 
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
@@ -29,7 +27,6 @@ jobs:
         run: npm run build
         env:
           CI: false
-          # Placeholder key allows build to pass without exposing real credentials
           API_KEY: "placeholder_key_for_build"
 
       - name: Setup Java
@@ -40,20 +37,18 @@ jobs:
 
       - name: Initialize Capacitor Android
         run: |
-          # Add android platform if not present (since it is gitignored)
           if [ ! -d "android" ]; then
             npx cap add android
           fi
-          # Sync web assets and config to the android project
           npx cap sync android
 
       - name: Patch Android Build for Java 17
         run: |
-          # The generated template might request Java 21, but Capacitor 6 works best with 17.
-          # We patch the build files to enforce Java 17 compatibility.
-          find android -name "build.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/sourceCompatibility = 21/sourceCompatibility = 17/g' {} +
-          find android -name "build.gradle" -type f -exec sed -i 's/targetCompatibility = 21/targetCompatibility = 17/g' {} +
+          if [ -d "android" ]; then
+            find android -name "build.gradle" -type f -exec sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' {} +
+            find android -name "build.gradle" -type f -exec sed -i 's/sourceCompatibility = 21/sourceCompatibility = 17/g' {} +
+            find android -name "build.gradle" -type f -exec sed -i 's/targetCompatibility = 21/targetCompatibility = 17/g' {} +
+          fi
 
       - name: Build APK with Gradle
         working-directory: android
